@@ -20,7 +20,6 @@ public class ExtendedClientBuilder implements HttpClient.Builder{
     private int priority;
     private ProxySelector proxySelector;
     private Authenticator authenticator;
-    private Interceptor<?,?> interceptor;
 
     @Override
     public HttpClient.Builder cookieHandler(CookieHandler cookieHandler) {
@@ -80,11 +79,6 @@ public class ExtendedClientBuilder implements HttpClient.Builder{
     @Override
     public HttpClient.Builder authenticator(Authenticator authenticator) {
         this.authenticator=authenticator;
-        return this;
-    }
-
-    public HttpClient.Builder interceptor(Interceptor<?,?> interceptor){
-        this.interceptor=interceptor;
         return this;
     }
 

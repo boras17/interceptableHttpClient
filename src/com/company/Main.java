@@ -8,18 +8,11 @@ import java.net.http.HttpResponse;
 
 public class Main {
 
-    public static class RequestPrinter implements RequestInterceptor{
+    public static class ResponseInterceptor implements com.company.ResponseInterceptor<String>{
         @Override
-        public DecoreatedRequest handle(HttpRequest content) {
-            return new DecoreatedRequest(content);
-        }
-    }
-
-    public static class ResponseInterceptor implements com.company.ResponseInterceptor{
-
-        @Override
-        public DecoratedResponse<?> handle(HttpResponse<?> content) {
-            return new DecoratedResponse<>(content);
+        public DecoratedResponse<String> handle(HttpResponse<String> content) {
+            DecoratedResponse<String> decoratedResponse = new DecoratedResponse<String>(content);
+            return decoratedResponse;
         }
     }
 
@@ -38,15 +31,14 @@ public class Main {
 
         httpClientDecorator.decorate(new ResponseInterceptor(),2);
         httpClientDecorator.decorate(new ResponseInterceptor(),1);
-        httpClientDecorator.decorate(new ResponseInterceptor(),3);
-        httpClientDecorator.decorate(new RequestPrinter(), 4);
-        httpClientDecorator.decorate(new RequestPrinter(), 3);
-        httpClientDecorator.decorate(new RequestPrinter(), 2);
 
         System.out.println(httpClientDecorator.getInterceptorsMap());
 
         try{
             HttpResponse<String> response = httpClientDecorator.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println(response.body());
+            HttpResponse<String> response2 = httpClientDecorator.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println(response2.body());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }

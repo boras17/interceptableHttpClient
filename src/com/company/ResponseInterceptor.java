@@ -2,7 +2,7 @@ package com.company;
 
 import java.net.http.HttpResponse;
 
-public interface ResponseInterceptor extends Interceptor<DecoratedResponse<?>, HttpResponse<?>>{
+public  interface ResponseInterceptor<T> extends Interceptor<DecoratedResponse<T>, HttpResponse<T>>{
 
 }
 

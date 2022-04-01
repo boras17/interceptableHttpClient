@@ -23,7 +23,8 @@ public class HttpClientDecorator extends HttpClient {
     }
 
     private final HttpClient client;
-    private final Map<  Types, Map<Integer, Interceptor<?,?>>  > interceptorsMap = new EnumMap<Types, Map<Integer, Interceptor<?, ?>>>(Types.class);
+    private final Map<  Types, Map<Integer, Interceptor<?,?>>  > interceptorsMap =
+            new EnumMap<Types, Map<Integer, Interceptor<?, ?>>>(Types.class);
 
     public HttpClientDecorator(final HttpClient client){
         this.client=client;
@@ -122,21 +123,20 @@ public class HttpClientDecorator extends HttpClient {
         return interceptorsMap;
     }
 
-    private <T>HttpResponse<T> interceptionResponse(HttpResponse<T> response){
+    private <T>DecoratedResponse<T> interceptionResponse(HttpResponse<T> response){
+        PrevInstances<T> prevInstances = new PrevInstances<>();
+        DecoratedResponse<T> modifiedResponse = null;
+
+        prevInstances.setPrevResponse(new DecoratedResponse<>(response));
+
         for(Map.Entry<Integer,Interceptor<?,?>> entry: this.interceptorsMap.get(Types.RESPONSE).entrySet()){
-            ResponseInterceptor responseInterceptor=(ResponseInterceptor) entry.getValue();
-            // tutajjest problem trzbea umozliwisc kolejnym interceptorom
-            // operacje na poprzednim wyniku a nie kazdy na nowym
-
-            responseInterceptor.handle(response);
+            ResponseInterceptor<T> responseInterceptor=(ResponseInterceptor<T>) entry.getValue();
+            modifiedResponse = responseInterceptor.handle(prevInstances.getPrevResponse().orElseThrow());
+            prevInstances.setPrevResponse(modifiedResponse);
         }
-        return new DecoratedResponse<>(response);
+
+        return modifiedResponse;
     }
-
-
-    // additional conetntforhandlingrequests and repsonses abowe
-    //-------------------------------------------------
-
 
     @Override
     public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) throws IOException, InterruptedException {
