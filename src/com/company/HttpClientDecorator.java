@@ -77,10 +77,6 @@ public class HttpClientDecorator extends HttpClient {
         return this.client.executor();
     }
 
-    // additional content for decorating requests and responses
-
-    //--------------------------
-
     public void decorate(Interceptor<?,?> interceptor, int order){
         if(interceptor instanceof ResponseInterceptor){
 
@@ -156,8 +152,6 @@ public class HttpClientDecorator extends HttpClient {
                     }
                 });
     }
-    // interceptor HttpResonseDecorator powinein pamietac porpzedni wynik trasnformacji
-    // podobnie jak HttpRequestDecorator powinien pamietac poprzedni wynik modyfikacji
 
     @Override
     public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler, HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
