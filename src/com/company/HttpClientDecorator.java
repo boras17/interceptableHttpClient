@@ -119,11 +119,11 @@ public class HttpClientDecorator extends HttpClient {
         return interceptorsMap;
     }
 
-    private <T>DecoratedResponse<T> interceptionResponse(HttpResponse<T> response){
+    private <T> ResponseWrapper<T> interceptionResponse(HttpResponse<T> response){
         PrevInstances<T> prevInstances = new PrevInstances<>();
-        DecoratedResponse<T> modifiedResponse = null;
+        ResponseWrapper<T> modifiedResponse = null;
 
-        prevInstances.setPrevResponse(new DecoratedResponse<>(response));
+        prevInstances.setPrevResponse(new ResponseWrapper<>(response));
 
         for(Map.Entry<Integer,Interceptor<?,?>> entry: this.interceptorsMap.get(Types.RESPONSE).entrySet()){
             ResponseInterceptor<T> responseInterceptor=(ResponseInterceptor<T>) entry.getValue();

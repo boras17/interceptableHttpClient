@@ -1,6 +1,7 @@
 package com.company;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -8,11 +9,21 @@ import java.net.http.HttpResponse;
 
 public class Main {
 
-    public static class ResponseInterceptor implements com.company.ResponseInterceptor<String>{
+    public static class ResponseToUpperCase implements ResponseInterceptor<String>{
         @Override
-        public DecoratedResponse<String> handle(HttpResponse<String> content) {
-            DecoratedResponse<String> decoratedResponse = new DecoratedResponse<String>(content);
+        public ResponseWrapper<String> handle(HttpResponse<String> content) {
+            ResponseWrapper<String> decoratedResponse = new ResponseWrapper<String>(content);
+            String previousBody = decoratedResponse.body();
+            decoratedResponse.updateBody(previousBody.toUpperCase());
             return decoratedResponse;
+        }
+    }
+
+    public static class AddJwtHeaderForRequest implements RequestInterceptor{
+        @Override
+        public RequestWrapper handle(HttpRequest content) {
+            RequestWrapper requestWrapper = new RequestWrapper(content);
+            return new RequestWrapper(content);
         }
     }
 
@@ -28,17 +39,19 @@ public class Main {
                 .uri(test)
                 .GET()
                 .build();
+        Method[] methods = request.getClass().getDeclaredMethods();
 
-        httpClientDecorator.decorate(new ResponseInterceptor(),2);
-        httpClientDecorator.decorate(new ResponseInterceptor(),1);
+        for (Method method: methods){
+            System.out.println(method.getName());
+        }
+
+        httpClientDecorator.decorate(new ResponseToUpperCase(),1);
 
         System.out.println(httpClientDecorator.getInterceptorsMap());
 
         try{
             HttpResponse<String> response = httpClientDecorator.send(request, HttpResponse.BodyHandlers.ofString());
             System.out.println(response.body());
-            HttpResponse<String> response2 = httpClientDecorator.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println(response2.body());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }

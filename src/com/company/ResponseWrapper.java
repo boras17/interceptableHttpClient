@@ -9,17 +9,17 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Optional;
 
-public class DecoratedResponse<T> implements HttpResponse<T> {
+public class ResponseWrapper<T> implements HttpResponse<T> {
     public static int decorated_resonse_handler=0;
     private HttpResponse<T> response;
     private T body;
 
-    public DecoratedResponse(HttpResponse<T> response){
+    public ResponseWrapper(HttpResponse<T> response){
         this.response=response;
-        DecoratedResponse.decorated_resonse_handler+=1;
+        ResponseWrapper.decorated_resonse_handler+=1;
         this.body = response.body();
     }
-    
+
     public void updateBody(T newBody) {
         this.body = newBody;
     }

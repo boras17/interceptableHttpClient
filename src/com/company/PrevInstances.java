@@ -3,17 +3,17 @@ package com.company;
 import java.util.Optional;
 
 public class PrevInstances<T> {
-    private DecoratedResponse<T> prevResponse;
+    private ResponseWrapper<T> prevResponse;
 
     public PrevInstances() {
 
     }
 
-    public Optional<DecoratedResponse<T>> getPrevResponse() {
+    public Optional<ResponseWrapper<T>> getPrevResponse() {
         return Optional.of(prevResponse);
     }
 
-    public void setPrevResponse(DecoratedResponse<T> prevResponse) {
+    public void setPrevResponse(ResponseWrapper<T> prevResponse) {
         this.prevResponse = prevResponse;
     }
 }
