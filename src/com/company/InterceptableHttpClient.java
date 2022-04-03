@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class HttpClientDecorator extends HttpClient {
+public class InterceptableHttpClient extends HttpClient {
 
     private final HttpClient client;
     private RequestInterceptor requestInterceptor;
@@ -25,7 +25,7 @@ public class HttpClientDecorator extends HttpClient {
         REQUEST_INTERCEPTOR, RESPONSE_INTERCEPTOR
     }
 
-    public HttpClientDecorator(final HttpClient client){
+    public InterceptableHttpClient(final HttpClient client){
         this.client=client;
     }
 
@@ -74,19 +74,35 @@ public class HttpClientDecorator extends HttpClient {
         return this.client.executor();
     }
 
-    public void decorate(Interceptor<?,?> interceptor,
+    public void interceptor(ResponseInterceptor<?> interceptor,
                          int order){
-        if(interceptor instanceof ResponseInterceptor){
-            this.response_interceptors_map.computeIfAbsent(order,
-                    new Function<Integer, ResponseInterceptor<?>>() {
-                @Override
-                public ResponseInterceptor<?> apply(Integer integer) {
-                    return (ResponseInterceptor<?>) interceptor;
-                }
-            });
-        }else{
-            this.requestInterceptor = (RequestInterceptor) interceptor;
-        }
+        this.response_interceptors_map.computeIfAbsent(order,
+                new Function<Integer, ResponseInterceptor<?>>() {
+            @Override
+            public ResponseInterceptor<?> apply(Integer integer) {
+                return (ResponseInterceptor<?>) interceptor;
+            }
+        });
+
+    }
+    public void interceptor(RequestInterceptor requestInterceptor) {
+        Optional.ofNullable(this.requestInterceptor)
+                .ifPresentOrElse(interceptor -> {
+                    String registeredRequestInterceptorName = interceptor.getClass().getName();
+                    String registeredRequestInterceptorLocation = interceptor.getClass().getPackageName();
+                    StringBuilder constructErrorMsg = new StringBuilder();
+
+                    constructErrorMsg.append("You already registered request interceptor in: ")
+                            .append(registeredRequestInterceptorLocation)
+                            .append(" package")
+                            .append("\n")
+                            .append(" interceptor class name: ")
+                            .append(registeredRequestInterceptorName);
+
+                    System.err.print(constructErrorMsg);
+                }, () ->{
+                    this.requestInterceptor = requestInterceptor;
+                });
     }
     private HttpRequest interceptRequest(HttpRequest request){
         return this.requestInterceptor.handle(request);

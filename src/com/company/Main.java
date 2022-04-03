@@ -1,7 +1,6 @@
 package com.company;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -35,28 +34,23 @@ public class Main {
     public static void main(String[] args) {
         URI test = URI.create("http://localhost:7777/data");
 
-        HttpClientDecorator httpClientDecorator
-                = new HttpClientDecorator(HttpClient.newBuilder()
-                .build());
+        HttpClient client = HttpClient.newBuilder()
+                .build();
+
+        InterceptableHttpClient interceptable
+                = new InterceptableHttpClient(client);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(test)
                 .GET()
-                .header("test", "dat")
                 .build();
-        Method[] methods = request.getClass().getDeclaredMethods();
 
-        for (Method method: methods){
-            System.out.println(method.getName());
-        }
+        interceptable.interceptor(new ResponseToUpperCase(),1);
+        interceptable.interceptor(new AddJwtHeaderForRequest());
 
-        httpClientDecorator.decorate(new ResponseToUpperCase(),1);
-        httpClientDecorator.decorate(new AddJwtHeaderForRequest(), 1);
-
-        System.out.println(httpClientDecorator.getInterceptorsMap());
 
         try{
-            HttpResponse<String> response = httpClientDecorator.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = interceptable.send(request, HttpResponse.BodyHandlers.ofString());
             System.out.println(response.body());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
