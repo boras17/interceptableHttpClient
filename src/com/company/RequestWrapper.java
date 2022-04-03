@@ -5,6 +5,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,9 +21,26 @@ public class RequestWrapper extends HttpRequest {
 
     }
 
-    public static RequestWrapper addHeaders(Map<String, String> headers, HttpRequest request){
-        String method = request.method();
-        return null;
+    public RequestWrapper addHeaders(Map<String, List<String>> headers){
+        HttpHeaders prev_headers = this.httpRequest.headers();
+
+        Map<String, List<String>> headersList = new HashMap<>(prev_headers.map());
+        headersList.putAll(headers);
+
+        Builder newHttpRequest = HttpRequest.newBuilder()
+                .method(this.method(),this.bodyPublisher().orElse(BodyPublishers.noBody()))
+                .uri(this.uri())
+                .version(version().orElse(HttpClient.Version.HTTP_1_1))
+                .timeout(this.timeout().orElse(Duration.ofSeconds(30)))
+                .expectContinue(this.expectContinue());
+
+        for(Map.Entry<String, List<String>> entry: headersList.entrySet()){
+            newHttpRequest.header(entry.getKey(), String.join(" ", entry.getValue()));
+        }
+
+        HttpRequest httpRequest = newHttpRequest.build();
+
+        return new RequestWrapper(httpRequest);
     }
 
     @Override

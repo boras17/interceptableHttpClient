@@ -13,23 +13,20 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class HttpClientDecorator extends HttpClient {
 
-    static enum Types{
-        REQUEST,RESPONSE
-    }
-
     private final HttpClient client;
-    private final Map<  Types, Map<Integer, Interceptor<?,?>>  > interceptorsMap =
-            new EnumMap<Types, Map<Integer, Interceptor<?, ?>>>(Types.class);
+    private RequestInterceptor requestInterceptor;
+    private final Map<Integer, ResponseInterceptor<?>> response_interceptors_map = new TreeMap<>();
+
+    public enum Type{
+        REQUEST_INTERCEPTOR, RESPONSE_INTERCEPTOR
+    }
 
     public HttpClientDecorator(final HttpClient client){
         this.client=client;
-        this.interceptorsMap.put(Types.REQUEST, new TreeMap<>());
-        this.interceptorsMap.put(Types.RESPONSE,new TreeMap<>());
     }
 
     @Override
@@ -77,46 +74,34 @@ public class HttpClientDecorator extends HttpClient {
         return this.client.executor();
     }
 
-    public void decorate(Interceptor<?,?> interceptor, int order){
+    public void decorate(Interceptor<?,?> interceptor,
+                         int order){
         if(interceptor instanceof ResponseInterceptor){
-
-            Map<Integer,Interceptor<?,?>> interceptors = this.interceptorsMap.get(Types.RESPONSE);
-            interceptors.put(order, interceptor);
-
-            this.interceptorsMap.computeIfPresent(Types.RESPONSE, new BiFunction<Types,
-                    Map<Integer, Interceptor<?, ?>>, Map<Integer, Interceptor<?, ?>>>() {
+            this.response_interceptors_map.computeIfAbsent(order,
+                    new Function<Integer, ResponseInterceptor<?>>() {
                 @Override
-                public Map<Integer, Interceptor<?, ?>> apply(Types types, Map<Integer, Interceptor<?, ?>> integerInterceptorMap) {
-                    return interceptors;
+                public ResponseInterceptor<?> apply(Integer integer) {
+                    return (ResponseInterceptor<?>) interceptor;
                 }
             });
         }else{
-            Map<Integer,Interceptor<?,?>> interceptors = this.interceptorsMap.get(Types.REQUEST);
-            interceptors.put(order, interceptor);
-
-            this.interceptorsMap.computeIfPresent(Types.REQUEST, new BiFunction<Types,
-                    Map<Integer, Interceptor<?, ?>>, Map<Integer, Interceptor<?, ?>>>() {
-                @Override
-                public Map<Integer, Interceptor<?, ?>> apply(Types types, Map<Integer, Interceptor<?, ?>> integerInterceptorMap) {
-                    return interceptors;
-                }
-            });
+            this.requestInterceptor = (RequestInterceptor) interceptor;
         }
     }
     private HttpRequest interceptRequest(HttpRequest request){
-        Map<Integer,Interceptor<?,?>> requestInterceptors=this.interceptorsMap.get(Types.REQUEST);
-
-        Set<Map.Entry<Integer,Interceptor<?,?>>> interceptorsEntrySet=requestInterceptors.entrySet();
-
-        for(Map.Entry<Integer,Interceptor<?,?>> entry: interceptorsEntrySet){
-            RequestInterceptor interceptor_re=(RequestInterceptor)entry.getValue();
-            interceptor_re.handle(request);
-        }
-        return request;
+        return this.requestInterceptor.handle(request);
     }
 
-    public Map<Types, Map<Integer, Interceptor<?,?>>> getInterceptorsMap() {
-        return interceptorsMap;
+    public Map<Type, Interceptor<?,?>> getInterceptorsMap() {
+        Map<Type, Interceptor<?,?>> interceptors = new EnumMap<Type, Interceptor<?, ?>>(Type.class);
+
+        for(Map.Entry<Integer, ResponseInterceptor<?>> entry: this.response_interceptors_map.entrySet()){
+            interceptors.put(Type.RESPONSE_INTERCEPTOR, entry.getValue());
+        }
+        Optional.ofNullable(this.requestInterceptor).ifPresent(interceptor -> {
+            interceptors.put(Type.REQUEST_INTERCEPTOR, interceptor);
+        });
+        return interceptors;
     }
 
     private <T> ResponseWrapper<T> interceptionResponse(HttpResponse<T> response){
@@ -125,8 +110,8 @@ public class HttpClientDecorator extends HttpClient {
 
         prevInstances.setPrevResponse(new ResponseWrapper<>(response));
 
-        for(Map.Entry<Integer,Interceptor<?,?>> entry: this.interceptorsMap.get(Types.RESPONSE).entrySet()){
-            ResponseInterceptor<T> responseInterceptor=(ResponseInterceptor<T>) entry.getValue();
+        for(Map.Entry<Integer,ResponseInterceptor<?>> entry: this.response_interceptors_map.entrySet()){
+            ResponseInterceptor<T> responseInterceptor= (ResponseInterceptor<T>) entry.getValue();
             modifiedResponse = responseInterceptor.handle(prevInstances.getPrevResponse().orElseThrow());
             prevInstances.setPrevResponse(modifiedResponse);
         }
@@ -135,15 +120,17 @@ public class HttpClientDecorator extends HttpClient {
     }
 
     @Override
-    public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) throws IOException, InterruptedException {
+    public <T> HttpResponse<T> send(HttpRequest request,
+                                    HttpResponse.BodyHandler<T> responseBodyHandler) throws IOException, InterruptedException {
         HttpRequest modified_request=this.interceptRequest(request);
-
+        System.out.println("modified req: " + modified_request.headers().toString());
         HttpResponse<T> response=this.client.send(modified_request,responseBodyHandler);
         return this.interceptionResponse(response);
     }
 
     @Override
-    public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) {
+    public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request,
+                                                            HttpResponse.BodyHandler<T> responseBodyHandler) {
         return this.client.sendAsync(request,responseBodyHandler)
                 .thenApply(new Function<HttpResponse<T>, HttpResponse<T>>() {
                     @Override
@@ -154,7 +141,9 @@ public class HttpClientDecorator extends HttpClient {
     }
 
     @Override
-    public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler, HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
+    public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request,
+                                                            HttpResponse.BodyHandler<T> responseBodyHandler,
+                                                            HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
         return this.client.sendAsync(request,responseBodyHandler);
     }
 }
