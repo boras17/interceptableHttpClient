@@ -41,3 +41,14 @@ The final step is to register interceptors via 'interceptor' method from Interce
 interceptable.interceptor(new ResponseToUpperCase(),1);
         interceptable.interceptor(new AddJwtHeaderForRequest());
  ```
+Warning! When you are registering response interceptor you have to specify his order which is second parameter of 'interceptor' method. Second thing is that you can register only one request interceptor and then you do not define his order.
+How to send requests? 
+InterceptableHttpClient inherits HttpClient so it has the same methods as HttpClient has:
+ ```java
+try{
+    HttpResponse<String> response = interceptable.send(request, HttpResponse.BodyHandlers.ofString());
+    System.out.println(response.body());
+} catch (IOException | InterruptedException e) {
+    e.printStackTrace();
+}
+ ```
