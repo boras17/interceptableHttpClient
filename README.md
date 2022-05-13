@@ -1,5 +1,5 @@
 # interceptableHttpClient
-This simple wrapper allows you to add some interceptors to you HttpClient with specified order.
+This simple wrapper allows you to add some interceptors to your HttpClient with specified order.
 Exmaple:
 ```java 
 class ResponseToUpperCase implements ResponseInterceptor<String>{
@@ -33,13 +33,12 @@ HttpClient client = HttpClient.newBuilder()
  ```
  And then pass this instance as a constructor parameter for InterceptableHttpClient:
  ```java
- InterceptableHttpClient interceptable
-                = new InterceptableHttpClient(client);
+ InterceptableHttpClient interceptable= new InterceptableHttpClient(client);
 ```
 The final step is to register interceptors via 'interceptor' method from InterceptableHttpClient:
  ```java
 interceptable.interceptor(new ResponseToUpperCase(),1);
-        interceptable.interceptor(new AddJwtHeaderForRequest());
+interceptable.interceptor(new AddJwtHeaderForRequest());
  ```
 Warning! When you are registering response interceptor you have to specify his order which is second parameter of 'interceptor' method. Second thing is that you can register only one request interceptor and then you do not define his order.
 How to send requests? 
